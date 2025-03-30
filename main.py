@@ -1,12 +1,10 @@
 import sys
-from multiprocessing.dummy import current_process
-
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsRectItem,
-    QGraphicsTextItem, QPushButton, QVBoxLayout, QWidget
+    QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem, QPushButton, QVBoxLayout, QWidget, QDockWidget
 )
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor
+
 
 class Board(QGraphicsView):
     def __init__(self):
@@ -15,7 +13,7 @@ class Board(QGraphicsView):
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)
 
-        #Drawing variables
+        # Drawing variables
         self.is_drawing = False
         self.last_point = None
         self.pen = QPen(Qt.black, 2)
@@ -37,7 +35,7 @@ class Board(QGraphicsView):
                 self.pen,
             )
             self.last_point = current_point
-        super().mouseReleaseEvent(event)
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -46,12 +44,44 @@ class Board(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def add_note(self):
-        rect = QRectF(50,50,100,100)
+        rect = QRectF(50, 50, 100, 100)
         note = QGraphicsRectItem(rect)
         note.setBrush(QBrush(QColor("yellow")))
         note.setFlags(
-            QGraphicsTextItem.ItemIsMovable | QGraphicsRectItem.ItemIsSelectable
+            QGraphicsRectItem.ItemIsMovable | QGraphicsRectItem.ItemIsSelectable
         )
         text = QGraphicsTextItem("New Note", note)
         text.setTextInteractionFlags(Qt.TextEditorInteraction)
         self.scene.addItem(note)
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Task Manager Board")
+
+        self.board = Board()
+        self.setCentralWidget(self.board)
+
+        # Add buttons for functionality
+        dock = QDockWidget("Tools", self)
+        dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+
+        button_layout = QVBoxLayout()
+        add_note_button = QPushButton("Add Note")
+        add_note_button.clicked.connect(self.board.add_note)
+        button_layout.addWidget(add_note_button)
+
+        # Create a container for the buttons
+        button_container = QWidget()
+        button_container.setLayout(button_layout)
+        dock.setWidget(button_container)
+
+        self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+
+
+app = QApplication(sys.argv)
+window = MainWindow()
+window.show()
+sys.exit(app.exec_())
+
