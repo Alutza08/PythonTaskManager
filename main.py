@@ -50,11 +50,6 @@ class Board(QGraphicsView):
             self.scene.removeItem(self.selected_note)  # Remove the selected note from the scene
             self.selected_note = None  # Clear the selected note tracker
 
-        def delete_selected_note(self):
-            if self.selected_note:
-                self.scene.removeItem(self.selected_note)  # Remove the selected note from the scene
-                self.selected_note = None  # Clear the selected note tracker
-
     def wheelEvent(self, event):
         # Zoom in when scrolling up, zoom out when scrolling down
         zoom_in = event.angleDelta().y() > 0
