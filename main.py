@@ -1,12 +1,11 @@
+import json
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem, QPushButton,
-    QVBoxLayout, QWidget, QDockWidget
+    QVBoxLayout, QWidget, QDockWidget, QSlider, QLabel, QLineEdit, QMenu, QAction, QComboBox
 )
-
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QCursor, QTransform, QFont
-from PyQt5.QtGui import QPixmap
 
 
 class Board(QGraphicsView):
@@ -16,10 +15,7 @@ class Board(QGraphicsView):
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)
 
-        # Set fixed size for the board
-        self.setSceneRect(0, 0, 800, 600)  # Fixed size for the scene (adjust as necessary)
-
-        # Drawing variables
+        self.setSceneRect(0, 0, 800, 600)
         self.is_drawing = False
         self.is_eraser = False
         self.last_point = None
@@ -27,15 +23,37 @@ class Board(QGraphicsView):
         self.drawing_enabled = False
         self.lines = []
 
-        # Eraser behavior
         self.eraser_size = 20
-        self.zoom_factor = 1.0  # Default zoom level
-
-        # For dragging the board
+        self.zoom_factor = 1.0
         self.is_dragging = False
         self.drag_start_pos = QPointF(0, 0)
+        self.selected_note = None  # Keep track of the selected note
 
-        self.note_sprite = QPixmap("paper_note.jpg")
+    def contextMenuEvent(self, event):
+        item = self.itemAt(event.pos())
+
+        if isinstance(item, QGraphicsRectItem):  # If the clicked item is a note
+            self.selected_note = item  # Track the selected note
+
+            # Create a context menu
+            context_menu = QMenu(self)
+
+            # Add Delete action
+            delete_action = QAction("Delete Note", self)
+            delete_action.triggered.connect(self.delete_selected_note)
+            context_menu.addAction(delete_action)
+
+            context_menu.exec_(self.mapToGlobal(event.pos()))
+
+    def delete_selected_note(self):
+        if self.selected_note:
+            self.scene.removeItem(self.selected_note)  # Remove the selected note from the scene
+            self.selected_note = None  # Clear the selected note tracker
+
+        def delete_selected_note(self):
+            if self.selected_note:
+                self.scene.removeItem(self.selected_note)  # Remove the selected note from the scene
+                self.selected_note = None  # Clear the selected note tracker
 
     def wheelEvent(self, event):
         # Zoom in when scrolling up, zoom out when scrolling down
@@ -124,29 +142,49 @@ class Board(QGraphicsView):
                 self.scene.removeItem(line)
                 self.lines.remove(line)
 
-    def add_note(self):
-        rect = QRectF(50, 50, 200, 200)
+    def add_note(self, note_text, size="normal"):
+        # Define the note sizes
+        if size == "small":
+            rect = QRectF(50, 50, 150, 150)  # Smaller note size
+            font = QFont("Arial", 12)
+        elif size == "normal":
+            rect = QRectF(50, 50, 200, 200)  # Default note size
+            font = QFont("Arial", 16)
+        elif size == "large":
+            rect = QRectF(50, 50, 250, 250)  # Larger note size
+            font = QFont("Arial", 21)
+
         note = QGraphicsRectItem(rect)
         note.setBrush(QBrush(QColor("yellow")))
         note.setFlags(
             QGraphicsRectItem.ItemIsMovable | QGraphicsRectItem.ItemIsSelectable
         )
 
-        text = QGraphicsTextItem("New Note", note)
+        text = QGraphicsTextItem(note_text, note)
 
         # Set a larger font
-        font = QFont("Arial", 12)  # Adjust size as needed
         text.setFont(font)
 
+        # Enable text wrapping within the note's rectangle
+        text.setTextWidth(rect.width() - 10)  # 10px margin
         text.setTextInteractionFlags(Qt.TextEditorInteraction)
 
         text_rect = text.boundingRect()
+        # Position the text at the top-left corner of the note, with a margin
         text.setPos(
-            rect.center().x() - text_rect.width() / 2,
-            rect.center().y() - text_rect.height() / 2
+            rect.left() + 5,  # 5px margin from the left
+            rect.top() + 5    # 5px margin from the top
         )
 
         self.scene.addItem(note)
+
+    def update_pen_size(self, value):
+        """ Update the pen size based on the slider value. """
+        self.pen.setWidth(value)
+
+    def update_eraser_size(self, value):
+        """ Update the eraser size based on the slider value. """
+        self.eraser_size = value
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -172,10 +210,43 @@ class MainWindow(QMainWindow):
         toggle_eraser_button.clicked.connect(self.board.toggle_eraser)
         button_layout.addWidget(toggle_eraser_button)
 
+        # Input for note text
+        self.note_input = QLineEdit()
+        self.note_input.setPlaceholderText("Enter note text here")
+        button_layout.addWidget(self.note_input)
+
+        # ComboBox for selecting note size
+        self.size_combo_box = QComboBox()
+        self.size_combo_box.addItem("Small")
+        self.size_combo_box.addItem("Normal")
+        self.size_combo_box.addItem("Large")
+        button_layout.addWidget(QLabel("Select Note Size:"))
+        button_layout.addWidget(self.size_combo_box)
+
         # Button to add a note
         add_note_button = QPushButton("Add Note")
-        add_note_button.clicked.connect(self.board.add_note)
+        add_note_button.clicked.connect(self.add_note)
         button_layout.addWidget(add_note_button)
+
+        # Slider for drawing pen size
+        self.pen_size_slider = QSlider(Qt.Horizontal)
+        self.pen_size_slider.setRange(1, 20)
+        self.pen_size_slider.setValue(5)
+        self.pen_size_slider.valueChanged.connect(self.update_pen_size)
+        pen_size_label = QLabel(f"Pen Size: {self.pen_size_slider.value()}")
+        self.pen_size_slider.valueChanged.connect(lambda: pen_size_label.setText(f"Pen Size: {self.pen_size_slider.value()}"))
+        button_layout.addWidget(pen_size_label)
+        button_layout.addWidget(self.pen_size_slider)
+
+        # Slider for eraser size
+        self.eraser_size_slider = QSlider(Qt.Horizontal)
+        self.eraser_size_slider.setRange(1, 50)
+        self.eraser_size_slider.setValue(20)
+        self.eraser_size_slider.valueChanged.connect(self.update_eraser_size)
+        eraser_size_label = QLabel(f"Eraser Size: {self.eraser_size_slider.value()}")
+        self.eraser_size_slider.valueChanged.connect(lambda: eraser_size_label.setText(f"Eraser Size: {self.eraser_size_slider.value()}"))
+        button_layout.addWidget(eraser_size_label)
+        button_layout.addWidget(self.eraser_size_slider)
 
         # Create a container for the buttons
         button_container = QWidget()
@@ -183,6 +254,27 @@ class MainWindow(QMainWindow):
         dock.setWidget(button_container)
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
+
+    def add_note(self):
+        note_text = self.note_input.text()
+        note_size = self.size_combo_box.currentText()
+
+        if note_text:  # Only add the note if text is provided
+            if note_size == "Small":
+                self.board.add_note(note_text, size="small")
+            elif note_size == "Normal":
+                self.board.add_note(note_text, size="normal")
+            elif note_size == "Large":
+                self.board.add_note(note_text, size="large")
+
+            self.note_input.clear()  # Clear input after adding
+
+    def update_pen_size(self, value):
+        self.board.update_pen_size(value)
+
+    def update_eraser_size(self, value):
+        self.board.update_eraser_size(value)
+
 
 
 app = QApplication(sys.argv)
