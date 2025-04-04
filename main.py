@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF
-from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QCursor, QTransform
+from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QCursor, QTransform, QFont
 from PyQt5.QtGui import QPixmap
 
 
@@ -38,7 +38,6 @@ class Board(QGraphicsView):
         self.note_sprite = QPixmap("paper_note.jpg")
 
     def wheelEvent(self, event):
-        """Handle zooming with the mouse wheel."""
         # Zoom in when scrolling up, zoom out when scrolling down
         zoom_in = event.angleDelta().y() > 0
         factor = 1.1  # Define zoom factor for zooming in or out
@@ -57,12 +56,10 @@ class Board(QGraphicsView):
         super().wheelEvent(event)
 
     def toggle_drawing(self):
-        """Toggle the drawing mode."""
         self.drawing_enabled = not self.drawing_enabled
         self.is_eraser = False
 
     def toggle_eraser(self):
-        """Toggle the eraser mode."""
         self.is_eraser = not self.is_eraser
         self.drawing_enabled = False
         if self.is_eraser:
@@ -71,6 +68,12 @@ class Board(QGraphicsView):
             self.setCursor(QCursor(Qt.ArrowCursor))
 
     def mousePressEvent(self, event):
+        item = self.itemAt(event.pos())
+
+        if isinstance(item, QGraphicsRectItem):  # Check if the clicked item is a note
+            super().mousePressEvent(event)
+            return  # Prevent board dragging when clicking a note
+
         if self.drawing_enabled and event.button() == Qt.LeftButton:
             self.is_drawing = True
             self.last_point = self.mapToScene(event.pos())
@@ -113,7 +116,6 @@ class Board(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def erase_lines(self, event):
-        """Erase lines within the eraser's size."""
         eraser_rect = QRectF(self.mapToScene(event.pos()) - QPointF(self.eraser_size / 2, self.eraser_size / 2),
                              QSizeF(self.eraser_size, self.eraser_size))
 
@@ -130,12 +132,12 @@ class Board(QGraphicsView):
             QGraphicsRectItem.ItemIsMovable | QGraphicsRectItem.ItemIsSelectable
         )
 
-        if not self.note_sprite.isNull():
-            #Can use Qt.KeepAspectRatio or Qt.KeepAspectRatioByExpanding, need to test with right image
-            scaled_sprite = self.note_sprite.scaled(rect.size().toSize(), Qt.KeepAspectRatio) 
-            note.setBrush(QBrush(scaled_sprite))
-
         text = QGraphicsTextItem("New Note", note)
+
+        # Set a larger font
+        font = QFont("Arial", 12)  # Adjust size as needed
+        text.setFont(font)
+
         text.setTextInteractionFlags(Qt.TextEditorInteraction)
 
         text_rect = text.boundingRect()
@@ -145,7 +147,6 @@ class Board(QGraphicsView):
         )
 
         self.scene.addItem(note)
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
