@@ -18,6 +18,7 @@ class Board(QGraphicsView):
         self.setSceneRect(0, 0, 800, 600)
         self.is_drawing = False
         self.is_eraser = False
+        self.currently_erasing = False
         self.last_point = None
         self.pen = QPen(Qt.black, 5)
         self.drawing_enabled = False
@@ -91,7 +92,9 @@ class Board(QGraphicsView):
             self.is_drawing = True
             self.last_point = self.mapToScene(event.pos())
         elif self.is_eraser and event.button() == Qt.LeftButton:
-            self.erase_lines(event)
+            self.currently_erasing = True
+            if self.currently_erasing:
+                self.erase_lines(event)
         elif event.button() == Qt.LeftButton:
             # Start dragging the board
             self.is_dragging = True
@@ -111,7 +114,7 @@ class Board(QGraphicsView):
             )
             self.lines.append(line)
             self.last_point = current_point
-        elif self.is_eraser:
+        elif self.is_eraser and self.currently_erasing:
             self.erase_lines(event)
         elif self.is_dragging:
             # Reverse the scene movement: subtract delta to move the scene in the opposite direction
@@ -126,6 +129,7 @@ class Board(QGraphicsView):
             self.is_drawing = False
             self.is_dragging = False
             self.last_point = None
+            self.currently_erasing = False
         super().mouseReleaseEvent(event)
 
     def erase_lines(self, event):
@@ -174,11 +178,9 @@ class Board(QGraphicsView):
         self.scene.addItem(note)
 
     def update_pen_size(self, value):
-        """ Update the pen size based on the slider value. """
         self.pen.setWidth(value)
 
     def update_eraser_size(self, value):
-        """ Update the eraser size based on the slider value. """
         self.eraser_size = value
 
 class MainWindow(QMainWindow):
