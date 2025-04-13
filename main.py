@@ -2,7 +2,7 @@ import json
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem, QPushButton,
-    QVBoxLayout, QWidget, QDockWidget, QSlider, QLabel, QLineEdit, QMenu, QAction, QComboBox, QFileDialog
+    QVBoxLayout, QWidget, QDockWidget, QSlider, QLabel, QLineEdit, QMenu, QAction, QComboBox, QFileDialog, QColorDialog
 )
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QCursor, QTransform, QFont
@@ -141,6 +141,13 @@ class Board(QGraphicsView):
                 self.scene.removeItem(line)
                 self.lines.remove(line)
 
+    def change_pen_color(self, callback=None):
+        color = QColorDialog.getColor(initial=QColor(self.pen.color()), parent=self)
+        if color.isValid():
+            self.pen.setColor(color)
+            if callback:
+                callback(color.name())
+
     def add_note(self, note_text, size="normal"):
         # Define the note sizes
         if size == "small":
@@ -264,6 +271,18 @@ class MainWindow(QMainWindow):
         toggle_drawing_button.clicked.connect(self.board.toggle_drawing)
         button_layout.addWidget(toggle_drawing_button)
 
+        # Button to change pen color
+        color_button = QPushButton("Choose Pen Color")
+        color_button.clicked.connect(lambda: self.board.change_pen_color(self.update_color_preview))
+        button_layout.addWidget(color_button)
+
+        # Label to preview selected pen color
+        self.color_preview = QLabel()
+        self.color_preview.setFixedSize(40, 20)
+        self.color_preview.setStyleSheet(f"background-color: {self.board.pen.color().name()}; border: 2px solid black;")
+        button_layout.addWidget(self.color_preview)
+
+
         # Button to toggle eraser mode
         toggle_eraser_button = QPushButton("Toggle Eraser Mode")
         toggle_eraser_button.clicked.connect(self.board.toggle_eraser)
@@ -344,9 +363,10 @@ class MainWindow(QMainWindow):
     def update_eraser_size(self, value):
         self.board.update_eraser_size(value)
 
-
+    def update_color_preview(self, color_name):
+        self.color_preview.setStyleSheet(f"background-color: {color_name}; border: 1px solid black;")
 
 app = QApplication(sys.argv)
 window = MainWindow()
 window.show()
-sys.exit(app.exec_())
+sys.exit(
