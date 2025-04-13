@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
         # Label to preview selected pen color
         self.color_preview = QLabel()
         self.color_preview.setFixedSize(40, 20)
-        self.color_preview.setStyleSheet(f"background-color: {self.board.pen.color().name()}; border: 2px solid black;")
+        self.color_preview.setStyleSheet(f"background-color: {self.board.pen.color().name()}; border: 2px solid #4B2E2B; border-radius: 3px;")
         button_layout.addWidget(self.color_preview)
 
 
@@ -341,6 +341,58 @@ class MainWindow(QMainWindow):
         button_container.setLayout(button_layout)
         dock.setWidget(button_container)
 
+        wood_style = """
+        QWidget {
+            background-color: #DEB887;  /* BurlyWood */
+            color: #4B2E2B;             /* Dark brown text */
+            font-family: Arial;
+            font-size: 14px;
+        }
+
+        QPushButton {
+            background-color: #A0522D;
+            color: white;
+            border: 1px solid #8B4513;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        QPushButton:hover {
+            background-color: #8B4513;
+        }
+
+        QLineEdit, QComboBox {
+            background-color: #F5DEB3;  /* Wheat */
+            border: 1px solid #A0522D;
+            border-radius: 4px;
+            padding: 3px;
+        }
+
+        QLabel {
+            font-weight: bold;
+        }
+
+        QSlider::groove:horizontal {
+            height: 6px;
+            background: #A0522D;
+        }
+
+        QSlider::handle:horizontal {
+            background: #4B2E2B;
+            border: 1px solid #8B4513;
+            width: 12px;
+            margin: -5px 0;
+            border-radius: 6px;
+        }
+
+        QDockWidget {
+            titlebar-close-icon: none;
+            titlebar-normal-icon: none;
+            font-weight: bold;
+            background-color: #DEB887;
+        }
+        """
+        button_container.setStyleSheet(wood_style)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
     def add_note(self):
@@ -369,4 +421,4 @@ class MainWindow(QMainWindow):
 app = QApplication(sys.argv)
 window = MainWindow()
 window.show()
-sys.exit(
+sys.exit(app.exec_())
