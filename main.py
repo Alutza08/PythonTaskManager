@@ -210,6 +210,8 @@ class Board(QGraphicsView):
             line_data = {
                 "start": (line.line().x1(), line.line().y1()),
                 "end": (line.line().x2(), line.line().y2()),
+                "color": line.pen().color().name(),  # <--- добавляем цвет
+                "width": line.pen().width(),  # <--- и толщину
             }
             board_data["lines"].append(line_data)
 
@@ -248,7 +250,11 @@ class Board(QGraphicsView):
             for line_data in board_data.get("lines", []):
                 start = QPointF(*line_data["start"])
                 end = QPointF(*line_data["end"])
-                line = self.scene.addLine(start.x(), start.y(), end.x(), end.y(), self.pen)
+                color = QColor(line_data.get("color", "#000000"))
+                width = line_data.get("width", 5) 
+
+                pen = QPen(color, width)
+                line = self.scene.addLine(start.x(), start.y(), end.x(), end.y(), pen)
                 self.lines.append(line)
 
 
