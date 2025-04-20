@@ -2,7 +2,7 @@ import json
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsRectItem, QGraphicsTextItem, QPushButton,
-    QVBoxLayout, QWidget, QDockWidget, QSlider, QLabel, QLineEdit, QMenu, QAction, QComboBox, QFileDialog
+    QVBoxLayout, QWidget, QDockWidget, QSlider, QLabel, QLineEdit, QMenu, QAction, QComboBox, QFileDialog, QColorDialog
 )
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QCursor, QTransform, QFont
@@ -141,6 +141,13 @@ class Board(QGraphicsView):
                 self.scene.removeItem(line)
                 self.lines.remove(line)
 
+    def change_pen_color(self, callback=None):
+        color = QColorDialog.getColor(initial=QColor(self.pen.color()), parent=self)
+        if color.isValid():
+            self.pen.setColor(color)
+            if callback:
+                callback(color.name())
+
     def add_note(self, note_text, size="normal"):
         # Define the note sizes
         if size == "small":
@@ -264,6 +271,18 @@ class MainWindow(QMainWindow):
         toggle_drawing_button.clicked.connect(self.board.toggle_drawing)
         button_layout.addWidget(toggle_drawing_button)
 
+        # Button to change pen color
+        color_button = QPushButton("Choose Pen Color")
+        color_button.clicked.connect(lambda: self.board.change_pen_color(self.update_color_preview))
+        button_layout.addWidget(color_button)
+
+        # Label to preview selected pen color
+        self.color_preview = QLabel()
+        self.color_preview.setFixedSize(40, 20)
+        self.color_preview.setStyleSheet(f"background-color: {self.board.pen.color().name()}; border: 2px solid #4B2E2B; border-radius: 3px;")
+        button_layout.addWidget(self.color_preview)
+
+
         # Button to toggle eraser mode
         toggle_eraser_button = QPushButton("Toggle Eraser Mode")
         toggle_eraser_button.clicked.connect(self.board.toggle_eraser)
@@ -322,6 +341,58 @@ class MainWindow(QMainWindow):
         button_container.setLayout(button_layout)
         dock.setWidget(button_container)
 
+        wood_style = """
+        QWidget {
+            background-color: #DEB887;  /* BurlyWood */
+            color: #4B2E2B;             /* Dark brown text */
+            font-family: Arial;
+            font-size: 14px;
+        }
+
+        QPushButton {
+            background-color: #A0522D;
+            color: white;
+            border: 1px solid #8B4513;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        QPushButton:hover {
+            background-color: #8B4513;
+        }
+
+        QLineEdit, QComboBox {
+            background-color: #F5DEB3;  /* Wheat */
+            border: 1px solid #A0522D;
+            border-radius: 4px;
+            padding: 3px;
+        }
+
+        QLabel {
+            font-weight: bold;
+        }
+
+        QSlider::groove:horizontal {
+            height: 6px;
+            background: #A0522D;
+        }
+
+        QSlider::handle:horizontal {
+            background: #4B2E2B;
+            border: 1px solid #8B4513;
+            width: 12px;
+            margin: -5px 0;
+            border-radius: 6px;
+        }
+
+        QDockWidget {
+            titlebar-close-icon: none;
+            titlebar-normal-icon: none;
+            font-weight: bold;
+            background-color: #DEB887;
+        }
+        """
+        button_container.setStyleSheet(wood_style)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
     def add_note(self):
@@ -344,7 +415,8 @@ class MainWindow(QMainWindow):
     def update_eraser_size(self, value):
         self.board.update_eraser_size(value)
 
-
+    def update_color_preview(self, color_name):
+        self.color_preview.setStyleSheet(f"background-color: {color_name}; border: 1px solid black;")
 
 app = QApplication(sys.argv)
 window = MainWindow()
